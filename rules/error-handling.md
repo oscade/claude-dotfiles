@@ -24,6 +24,24 @@ const { data, error } = await apiCall()
 if (error) throw error   // Propagation immédiate, jamais ignorer
 ```
 
+### Discrimination des erreurs à la couche service
+
+Le `throw error` brut est acceptable à la couche data (propagation immédiate).
+À la couche service (face utilisateur), les erreurs doivent être **discriminées**
+par code/type pour produire des messages contextualisés.
+
+```
+// INTERDIT en couche service — message incompréhensible pour l'utilisateur
+if (error) throw error
+
+// OBLIGATOIRE — discrimination par code, message actionable
+if (error.code === '23503') {
+  throw new Error('Impossible : des données dépendantes existent')
+}
+```
+
+Voir `supabase.md` §7 pour la table des error codes Supabase/PostgreSQL.
+
 ### Logging structuré avec préfixe module
 
 ```
@@ -79,14 +97,16 @@ type AsyncEvent =
 
 ## 3. Anti-Patterns Interdits
 
-| Interdit | Pourquoi | Alternative |
-|----------|----------|-------------|
-| `catch (e) {}` vide | Erreur silencieuse | Log + rethrow ou traitement |
-| `catch (e) { return null }` | Masque l'erreur à l'appelant | Throw ou Result type |
-| `console.log(error)` sans contexte | Non traçable en production | `[MODULE] message:` + error |
-| Ignorer le champ erreur d'une réponse | Échec silencieux | `if (error) throw error` |
-| `await` dans `.map()` sans error handling | Erreur non catchée | `Promise.allSettled()` ou try/catch |
-| Catch qui log + rethrow sans transformation | Double logging | Log OU rethrow, pas les deux |
+| Interdit | Pourquoi | Alternative | detection_grep |
+|----------|----------|-------------|----------------|
+| `catch (e) {}` vide | Erreur silencieuse | Log + rethrow ou traitement | `catch` |
+| `catch (e) { return null }` | Masque l'erreur à l'appelant | Throw ou Result type | `return null` |
+| `console.log(error)` sans contexte | Non traçable en production | `[MODULE] message:` + error | `console.log` |
+| `const { data }` sans `error` | Échec silencieux (Supabase/API) | `const { data, error }` | `const { data }` |
+| Ignorer le champ erreur d'une réponse | Échec silencieux | `if (error) throw error` | — |
+| `await` dans `.map()` sans error handling | Erreur non catchée | `Promise.allSettled()` ou try/catch | `await` + `.map(` |
+| Catch qui log + rethrow sans transformation | Double logging | Log OU rethrow, pas les deux | — |
+| `if (error) throw error` en couche service | Message brut incompréhensible | Discrimination par error code | — |
 
 ---
 
@@ -111,8 +131,9 @@ type AsyncEvent =
 ### Checklist pré-commit
 
 - [ ] `silent-failure-hunter` exécuté, aucune severity HIGH ou CRITICAL
-- [ ] Tous les retours d'API ont leur erreur vérifiée
+- [ ] Tous les retours d'API ont leur erreur vérifiée (`const { data, error }`)
 - [ ] Tous les `catch` ont du logging avec préfixe module
 - [ ] Zéro `catch` vide ou avec simple `console.log`
 - [ ] Les opérations multi-étapes ont un rollback pattern
 - [ ] Les mutations UI ont un état d'erreur visible
+- [ ] Les erreurs en couche service sont discriminées par code (pas de `throw error` brut face-utilisateur)

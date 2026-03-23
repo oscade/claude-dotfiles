@@ -127,7 +127,8 @@ L'utilisateur peut rejeter, imposer, arrêter toute ligne d'analyse. Réponse : 
 |-----------------|----------------|-----------------|
 | Client API, requêtes réseau, data fetching | `~/.claude/rules/api-layer.md` | code-reviewer, silent-failure-hunter |
 | try/catch, async/await, error states | `~/.claude/rules/error-handling.md` | silent-failure-hunter |
-| Requêtes DB, ORM, migrations, indexes | `~/.claude/rules/database.md` | code-reviewer, silent-failure-hunter |
+| Requêtes DB, ORM, migrations, indexes, FK | `~/.claude/rules/database.md` | code-reviewer, silent-failure-hunter |
+| Supabase (RLS, client, storage, migrations) | `~/.claude/rules/supabase.md` | code-reviewer, silent-failure-hunter, security-analyzer |
 | Services métier, CRUD, type mappers | `~/.claude/rules/service-layer.md` | code-reviewer, type-design-analyzer |
 | State management, stores, cache | `~/.claude/rules/state-management.md` | code-reviewer, type-design-analyzer |
 | Auth, accès données, validation, secrets | `~/.claude/rules/security.md` | silent-failure-hunter, code-reviewer |
