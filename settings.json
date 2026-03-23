@@ -1,0 +1,27 @@
+{
+  "effortLevel": "auto",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nos/.claude/hooks/pre-commit-review-gate.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nos/.claude/hooks/post-commit-cleanup.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

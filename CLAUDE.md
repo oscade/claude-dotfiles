@@ -132,7 +132,7 @@ L'utilisateur peut rejeter, imposer, arrêter toute ligne d'analyse. Réponse : 
 | State management, stores, cache | `~/.claude/rules/state-management.md` | code-reviewer, type-design-analyzer |
 | Auth, accès données, validation, secrets | `~/.claude/rules/security.md` | silent-failure-hunter, code-reviewer |
 | Tests unitaires, intégration, mocks | `~/.claude/rules/testing.md` | code-reviewer |
-| Composants UI, forms, accessibilité | `~/.claude/rules/ui-components.md` | code-reviewer, code-simplifier |
+| Composants UI, forms, accessibilité | `~/.claude/rules/ui-components.md` | code-reviewer, perf-analyzer |
 | Web Vitals, bundle, caching, lazy load | `~/.claude/rules/performance.md` | code-reviewer |
 | Workflow review, seuils, agents | `~/.claude/rules/review-agents.md` | tous |
 
@@ -163,8 +163,8 @@ Ce document peut être amendé à tout moment. Les modifications sont effectives
 3. CONTEXTE > Théorie
 4. MINIMAL et PRÉCIS
 5. PERFORMANCE dès le départ (→ performance.md)
-6. REVIEW avec les 5 agents après chaque feature (→ review-agents.md)
-7. LIRE le fichier .claude/docs/ de la couche AVANT de coder
+6. REVIEW avec les 6 agents après chaque feature (→ review-agents.md)
+7. LIRE le fichier .claude/rules/ de la couche AVANT de coder
 8. L'utilisateur a le dernier mot
 ```
 
