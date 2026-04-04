@@ -71,6 +71,7 @@ MINIMAL: Ne modifier que ce qui est strictement nécessaire
 COHÉRENT: Respecter le style existant, même si "non optimal"
 EXPLICITE: Commenter les changements non évidents
 RÉVERSIBLE: Faciliter le rollback si nécessaire
+MVP = SCOPE RÉDUIT, jamais QUALITÉ RÉDUITE.
 ```
 
 ### Interdictions
@@ -80,29 +81,14 @@ RÉVERSIBLE: Faciliter le rollback si nécessaire
 - Ne **JAMAIS** ajouter des abstractions "pour le futur"
 - Ne **JAMAIS** supprimer des commentaires existants (sauf si obsolètes et confirmés)
 - Ne **JAMAIS** modifier la configuration sans impact direct sur la tâche
-- Ne **JAMAIS** sauter une étape du workflow pour "aller plus vite" — si le scope est trop large, réduire le scope, pas la qualité
-- Ne **JAMAIS** dire "partiellement" sur une gate — c'est soit respecté à 100%, soit bloquant
-
-### Définition MVP
-
-```
-MVP = SCOPE RÉDUIT, jamais QUALITÉ RÉDUITE.
-Fonctionnalités basiques mais : architecture complète, code clean,
-sécurité 100%, review gate 100%, chaque étape du workflow respectée.
-Pour aller plus vite → demander à l'utilisateur avant tout raccourci.
-```
+- Ne **JAMAIS** sauter une étape du workflow — réduire le scope, pas la qualité
+- Ne **JAMAIS** dire "partiellement" sur une gate — c'est 100% ou bloquant
 
 ---
 
 ## 5. Gestion des Désaccords Techniques
 
-Si l'IA identifie un problème :
-```
-[OBSERVATION] Description factuelle
-[RISQUE] Impact potentiel
-[SUGGESTION] Alternative (optionnel)
-[QUESTION] Demande de contexte si nécessaire
-```
+Si l'IA identifie un problème : `[OBSERVATION]` → `[RISQUE]` → `[SUGGESTION]` → `[QUESTION]`
 
 Après décision de l'architecte/lead : implémenter sans réserve, ne pas re-soulever.
 L'utilisateur peut rejeter, imposer, arrêter toute ligne d'analyse. Réponse : exécution sans friction.
@@ -111,15 +97,13 @@ L'utilisateur peut rejeter, imposer, arrêter toute ligne d'analyse. Réponse : 
 
 ## 6. Conventions de Travail
 
-**Git** : suivre la convention commit du projet, respecter le naming branches, pas de force push sauf demande explicite, commits atomiques.
+**Git** : suivre la convention commit du projet, commits atomiques, pas de force push sauf demande explicite.
 
 **Documentation** : ne créer que si demandé, privilégier le format existant.
 
 **Tests** : respecter le framework en place, ne pas sur-tester. Détails → `~/.claude/rules/testing.md`
 
 ### Ship Flow (pipeline de livraison)
-
-Quand l'utilisateur demande de "ship" ou "livrer" une feature :
 
 ```
 1. Vérifier la branche  → git status, diff avec base branch
@@ -132,73 +116,19 @@ Quand l'utilisateur demande de "ship" ou "livrer" une feature :
 8. Post-PR              → signaler si CI/CD disponible
 ```
 
-- Chaque étape est bloquante — ne pas avancer si l'étape précédente échoue
-- Le ship flow est une séquence, pas un raccourci — ne pas sauter d'étapes
-- Si demandé, générer un CHANGELOG entry au format Keep a Changelog
+Chaque étape est bloquante. Ne pas avancer si l'étape précédente échoue.
 
 ---
 
 ## 7. Modes de Fonctionnement
 
-| Mode | Description |
-|------|-------------|
-| **Exécution** (défaut) | Faire ce qui est demandé, efficacement, sans sur-analyse |
-| **Revue** | Analyse critique, améliorations, évaluation sécurité/performance |
-| **Architecture** | Artefacts structurés obligatoires, comparaison d'approches, impacts |
-| **Planning** | Plans structurés avec tâches granulaires avant implémentation |
-| **Debug** | Protocole 4 phases → `~/.claude/rules/error-handling.md` section 4 |
-
-### Mode Architecture — Artefacts Structurés
-
-Activé pour toute décision architecturale significative (nouveau service, nouvelle entité, refactoring majeur).
-
-**Artefacts obligatoires avant implémentation :**
-
-| Artefact | Contenu | Format |
-|----------|---------|--------|
-| **Diagramme de composants** | Modules, dépendances, flux de données | ASCII art ou Mermaid |
-| **Data flow** | Entrée → traitement → stockage → sortie | Diagramme fléché |
-| **State machines** (si applicable) | États, transitions, guards | Table ou diagramme |
-| **Error paths** | Chaque point de défaillance et sa gestion | Table : point → erreur → handling |
-| **Test matrix** | Quoi tester, comment, priorité | Table par couche |
-
-**Règles :**
-
-- Chaque artefact est présenté à l'utilisateur AVANT implémentation
-- Les diagrammes ASCII sont préférés (lisibles partout, versionnables)
-- L'artefact error paths est obligatoire — pas d'architecture sans plan de gestion d'erreurs
-- Sauvegarder dans `docs/architecture/` si demandé
-
----
-
-### Mode Planning — Plans Structurés
-
-Activé pour toute feature non triviale (> 1 fichier ou > 30min estimé).
-
-**Format obligatoire du plan :**
-
-```
-# Plan: [Nom de la feature]
-## Spec approuvée: [lien ou résumé]
-## Tâches
-
-### Tâche 1 — [Description courte]
-- Fichier(s): chemin(s) exact(s)
-- Modification: code complet, pas de placeholder
-- Vérification: commande à exécuter pour valider
-
-### Tâche 2 — [Description courte]
-...
-```
-
-**Règles :**
-
-- Chaque tâche = 1 changement atomique vérifiable
-- **Zéro placeholder** : chaque tâche contient le code réel ou la description exacte
-- Fichiers cibles identifiés avec chemins complets
-- Chaque tâche a sa commande de vérification
-- Le plan est validé par l'utilisateur AVANT exécution
-- Sauvegarder le plan dans `docs/plans/` si demandé
+| Mode | Description | Détails |
+|------|-------------|---------|
+| **Exécution** (défaut) | Faire ce qui est demandé, efficacement | — |
+| **Architecture** | Artefacts structurés obligatoires | → `~/.claude/rules/modes.md` §1 |
+| **Planning** | Plans structurés avec tâches granulaires | → `~/.claude/rules/modes.md` §2 |
+| **Debug** | Protocole 4 phases, 3-strike rule | → `~/.claude/rules/error-handling.md` §4 |
+| **Revue** | Analyse critique, sécurité/performance | → `~/.claude/rules/review-agents.md` |
 
 ---
 
@@ -213,79 +143,42 @@ Activé pour toute feature non triviale (> 1 fichier ou > 30min estimé).
 | Requêtes DB, ORM, migrations, indexes | `~/.claude/rules/database.md` | code-reviewer, silent-failure-hunter |
 | Services métier, CRUD, type mappers | `~/.claude/rules/service-layer.md` | code-reviewer, type-design-analyzer |
 | State management, stores, cache | `~/.claude/rules/state-management.md` | code-reviewer, type-design-analyzer |
-| Auth, accès données, validation, secrets, STRIDE, supply chain | `~/.claude/rules/security.md` | security-analyzer, silent-failure-hunter, code-reviewer |
+| Auth, accès données, secrets, STRIDE | `~/.claude/rules/security.md` | security-analyzer, silent-failure-hunter |
 | Tests unitaires, intégration, E2E | `~/.claude/rules/testing.md` | code-reviewer |
 | Composants UI, forms, accessibilité | `~/.claude/rules/ui-components.md` | code-reviewer, code-simplifier |
 | Web Vitals, bundle, caching, benchmark | `~/.claude/rules/performance.md` | perf-analyzer, code-reviewer |
-| Workflow review, seuils, agents | `~/.claude/rules/review-agents.md` | tous |
-| Debug, investigation bugs | `~/.claude/rules/error-handling.md` §4 | silent-failure-hunter |
 | Verification navigateur (DOM + screenshot) | `~/.claude/rules/browser-verification.md` | playwright MCP |
-| Verification avant complétion | `~/.claude/rules/review-agents.md` §7 | verification-gate |
+| Workflow review, seuils, agents | `~/.claude/rules/review-agents.md` | tous |
+| Routing modèles sous-agents | `~/.claude/rules/model-routing.md` | — |
+| Modes architecture/planning | `~/.claude/rules/modes.md` | — |
+| Debug, investigation bugs | `~/.claude/rules/error-handling.md` §4 | silent-failure-hunter |
 
 ---
 
 ## 9. Directive Recherche Web
 
-Lors de l'initialisation d'un nouveau projet ou module, **rechercher les patterns recommandés actuels** via web search pour :
-- Les nouvelles versions des dépendances du projet
-- Les breaking changes et migrations
-- Les best practices communautaires à jour
-
-Ne pas se fier uniquement aux connaissances pré-entraînées pour les API récentes.
+Lors de l'initialisation d'un nouveau projet ou module, **rechercher les patterns recommandés actuels** via web search pour les nouvelles versions, breaking changes, et best practices. Ne pas se fier uniquement aux connaissances pré-entraînées.
 
 ---
 
-## 10. Optimisation Coût — Routing Modèles Sous-Agents
+## 10. Clause de Mise à Jour
 
-```
-RÈGLE : Ne JAMAIS lancer de sous-agents en Opus sauf nécessité explicite.
-Le budget utilisateur est limité — Opus coûte ~5x plus que Sonnet par token.
-Qualité > Quantité : si Sonnet ne suffit pas pour une tâche, utiliser Opus.
-```
-
-| Type de sous-agent | Modèle | Justification |
-|--------------------|--------|---------------|
-| **Explore** (recherche code, grep, read) | `model: "sonnet"` | Pas de raisonnement profond, juste du pattern matching |
-| **Review agents** (code-reviewer, silent-failure-hunter, type-design, perf, security, pwa) | `model: "sonnet"` | Évaluation contre des rules définies, Sonnet suffit |
-| **Plan** (architecture, design) | `model: "sonnet"` par défaut, `model: "opus"` si architecture complexe multi-domaines | Le planning bénéficie parfois d'Opus pour les trade-offs |
-| **Conversation principale** | Géré par Claude Code (routing auto) | Ne pas forcer le modèle |
-
-**Exceptions pour Opus sur sous-agents :**
-- Architecture système complexe (nouveau service, refactoring majeur cross-cutting)
-- Debugging avancé (3ème strike, problème architectural)
-- Revue de sécurité sur du code crypto/auth custom
+Ce document peut être amendé à tout moment. Modifications effectives immédiatement. Relire si incohérence détectée.
 
 ---
 
-## 11. Clause de Mise à Jour
-
-Ce document peut être amendé à tout moment. Les modifications sont effectives immédiatement après communication. L'IA doit relire ce fichier si mentionné ou si une incohérence est détectée.
-
----
-
-## 12. TL;DR - Les Essentiels
+## TL;DR
 
 ```
-1. LIRE avant de parler
-2. RESPECTER l'existant
-3. CONTEXTE > Théorie
-4. MINIMAL et PRÉCIS
-5. PERFORMANCE dès le départ (→ performance.md)
-6. REVIEW avec les 6 agents après chaque feature (→ review-agents.md)
-7. VÉRIFIER avant de déclarer terminé (→ review-agents.md §7)
-8. PLANS STRUCTURÉS pour toute feature non triviale
-9. LIRE le fichier ~/.claude/rules/ de la couche AVANT de coder
-10. L'utilisateur a le dernier mot
+1. LIRE avant de parler           6. REVIEW 6 agents après chaque feature
+2. RESPECTER l'existant           7. BROWSER CHECK avant review gate
+3. CONTEXTE > Théorie             8. VÉRIFIER avant de déclarer terminé
+4. MINIMAL et PRÉCIS              9. PLANS STRUCTURÉS si non trivial
+5. PERFORMANCE dès le départ     10. L'utilisateur a le dernier mot
 ```
 
-**RAPPEL CRITIQUE - CODE REVIEW OBLIGATOIRE (→ `~/.claude/rules/review-agents.md`)**
-```
-AVANT tout commit, TOUJOURS lancer les agents de review :
-- code-reviewer → Score >= 95 requis
-- silent-failure-hunter → Aucune severity HIGH ou CRITICAL
-- type-design-analyzer → Score moyen >= 8/10
-NE JAMAIS committer sans avoir exécuté au minimum code-reviewer.
-```
+AVANT tout commit : code-reviewer >= 95, silent-failure-hunter 0 HIGH/CRITICAL, type-design >= 8/10.
+Sous-agents en Sonnet par défaut, Opus si justifié (→ `~/.claude/rules/model-routing.md`).
 
 ---
 
