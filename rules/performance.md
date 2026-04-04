@@ -89,7 +89,58 @@ const HeavyComponent = lazy(() => import('./HeavyComponent'))
 
 ---
 
-## 5. Checklist Performance
+## 5. Protocole de Mesure (Benchmark)
+
+```
+Les cibles sans mesure sont des voeux pieux.
+Chaque métrique cible doit être MESURÉE, pas estimée.
+```
+
+### Quand mesurer
+
+| Situation | Action |
+|-----------|--------|
+| Nouvelle page/route | Baseline obligatoire (Lighthouse + Network tab) |
+| PR impactant le rendering ou les requêtes | Before/after comparison |
+| Ajout de dépendance | Mesurer l'impact bundle size |
+| Avant release | Audit complet toutes les pages |
+
+### Comment mesurer
+
+| Métrique | Outil | Commande / Méthode |
+|----------|-------|-------------------|
+| LCP, FID, CLS | Lighthouse CLI | `npx lighthouse <url> --output=json --only-categories=performance` |
+| Bundle size | Build analyzer | `npx vite-bundle-visualizer` ou équivalent framework |
+| Payload API | Network tab | Vérifier la taille des réponses en dev tools |
+| DB queries/page | Logging serveur | Compter les requêtes par page load |
+| Page load time | Playwright | `page.goto()` + `performance.timing` |
+
+### Format du rapport benchmark
+
+```
+Page: /route
+Date: YYYY-MM-DD
+──────────────────────────
+LCP:     X.Xs  (cible: < 2.5s)  [OK|FAIL]
+FID:     Xms   (cible: < 100ms) [OK|FAIL]
+CLS:     X.XX  (cible: < 0.1)   [OK|FAIL]
+Bundle:  XKB   (delta: +/-XKB)
+Payload: XKB   (cible: < 50KB)  [OK|FAIL]
+DB queries: X  (cible: 1-3)     [OK|FAIL]
+──────────────────────────
+```
+
+### Before/After sur les PRs
+
+Pour toute PR impactant la performance :
+1. Mesurer sur la branche `main` (baseline)
+2. Mesurer sur la branche PR
+3. Comparer les deltas
+4. Toute régression > 10% est bloquante
+
+---
+
+## 6. Checklist Performance
 
 Avant chaque PR/commit, vérifier :
 
@@ -104,7 +155,7 @@ Avant chaque PR/commit, vérifier :
 
 ---
 
-## 6. Portes d'Acceptation
+## 7. Portes d'Acceptation
 
 | Critère | Seuil | Vérification |
 |---------|-------|--------------|
@@ -120,4 +171,6 @@ Avant chaque PR/commit, vérifier :
 - [ ] Champs explicites sur toutes les requêtes
 - [ ] Pagination sur les listes
 - [ ] Lazy loading pour les composants lourds
-- [ ] `code-reviewer` score >= 90
+- [ ] Benchmark before/after si PR impacte la performance
+- [ ] Aucune régression > 10% sur les métriques mesurées
+- [ ] `code-reviewer` score >= 95

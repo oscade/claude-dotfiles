@@ -1,5 +1,4 @@
 {
-  "effortLevel": "auto",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +7,10 @@
           {
             "type": "command",
             "command": "/home/nos/.claude/hooks/pre-commit-review-gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "/home/nos/.claude/hooks/safety-guardrails.sh"
           }
         ]
       }
@@ -23,5 +26,10 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true
   }
 }

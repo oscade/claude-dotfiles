@@ -3,7 +3,7 @@
 > **Objectif** : Conventions et stratégie de test par couche
 > **Quand lire** : Avant d'écrire ou modifier des tests
 > **Agents** : code-reviewer (>= 90)
-> **Résumé gates** : toute nouvelle business logic testée | conventions respectées
+> **Résumé gates** : toute nouvelle business logic testée | conventions respectées | E2E sur flux critiques
 
 ---
 
@@ -92,7 +92,71 @@ vi.mock('./apiClient', () => ({
 
 ---
 
-## 4. Anti-Patterns Interdits
+## 4. Tests E2E / Browser (Playwright)
+
+```
+Les tests unitaires vérifient la logique. Les tests E2E vérifient l'expérience.
+Un test unitaire vert ne garantit PAS que l'utilisateur voit ce qu'il doit voir.
+```
+
+### Quand écrire des tests E2E
+
+| Situation | E2E requis |
+|-----------|-----------|
+| Flux critique (auth, paiement, onboarding) | **Obligatoire** |
+| CRUD complet d'une entité métier | **Obligatoire** |
+| Formulaire multi-étapes | **Obligatoire** |
+| Composant UI isolé | Non — tester via tests composants |
+| Pure function / service | Non — tester via tests unitaires |
+
+### Conventions E2E
+
+| Aspect | Convention |
+|--------|-----------|
+| Framework | Playwright (sauf convention projet différente) |
+| Nommage | `*.e2e.ts` |
+| Emplacement | `e2e/` à la racine du projet |
+| Données de test | Seed dédié ou fixtures, jamais de données prod |
+| Isolation | Chaque test indépendant, cleanup after |
+
+### Structure E2E
+
+```typescript
+test.describe('Nom du flux', () => {
+  test('should [résultat utilisateur] when [action]', async ({ page }) => {
+    // Navigate
+    await page.goto('/route')
+
+    // Act (interactions réelles)
+    await page.getByRole('button', { name: 'Submit' }).click()
+
+    // Assert (ce que l'utilisateur voit)
+    await expect(page.getByText('Success')).toBeVisible()
+  })
+})
+```
+
+### Bonnes pratiques E2E
+
+- **Sélecteurs** : `getByRole`, `getByText`, `getByLabel` — jamais de sélecteurs CSS/XPath fragiles
+- **Attentes** : `toBeVisible()`, `toHaveText()` — assertions sur ce que l'utilisateur perçoit
+- **Pas de sleep** : utiliser `waitForSelector`, `waitForResponse`, ou les auto-wait de Playwright
+- **Screenshots** : capturer sur échec pour diagnostic (`screenshot: 'only-on-failure'`)
+- **Tiered testing** : Quick (smoke, < 2min) pour chaque PR, Exhaustive (tous les flux) avant release
+
+### Anti-patterns E2E
+
+| Interdit | Pourquoi | Alternative |
+|----------|----------|-------------|
+| `page.locator('.css-class')` | Fragile, couplé à l'implémentation | `getByRole`, `getByText` |
+| `page.waitForTimeout(3000)` | Flaky, lent | `waitForSelector`, auto-wait |
+| Tester le style CSS | Non déterministe | Tester le comportement visible |
+| Données partagées entre tests | Tests couplés, flaky | Seed/cleanup par test |
+| E2E pour de la logique pure | Lent, mauvais ROI | Test unitaire |
+
+---
+
+## 5. Anti-Patterns Interdits
 
 | Interdit | Pourquoi | Alternative |
 |----------|----------|-------------|
@@ -105,13 +169,14 @@ vi.mock('./apiClient', () => ({
 
 ---
 
-## 5. Portes d'Acceptation
+## 6. Portes d'Acceptation
 
 | Critère | Seuil | Vérification |
 |---------|-------|--------------|
 | Business logic testée | 100% des nouvelles fonctions | Review |
 | Tests passent | Green | CI / test runner |
-| code-reviewer | Score >= 90 | Agent |
+| E2E sur flux critiques | Smoke tests green | Playwright |
+| code-reviewer | Score >= 95 | Agent |
 
 ### Checklist pré-commit
 
@@ -121,3 +186,5 @@ vi.mock('./apiClient', () => ({
 - [ ] Pas de `test.skip` ou `test.todo` non justifié
 - [ ] Mocks limités aux I/O (API, DB, filesystem)
 - [ ] Assertions explicites (pas de snapshots fragiles)
+- [ ] Tests E2E sur les flux critiques (auth, CRUD, formulaires multi-étapes)
+- [ ] Sélecteurs E2E accessibles (`getByRole`, `getByText`), pas de CSS/XPath

@@ -24,24 +24,6 @@ const { data, error } = await apiCall()
 if (error) throw error   // Propagation immédiate, jamais ignorer
 ```
 
-### Discrimination des erreurs à la couche service
-
-Le `throw error` brut est acceptable à la couche data (propagation immédiate).
-À la couche service (face utilisateur), les erreurs doivent être **discriminées**
-par code/type pour produire des messages contextualisés.
-
-```
-// INTERDIT en couche service — message incompréhensible pour l'utilisateur
-if (error) throw error
-
-// OBLIGATOIRE — discrimination par code, message actionable
-if (error.code === '23503') {
-  throw new Error('Impossible : des données dépendantes existent')
-}
-```
-
-Voir `supabase.md` §7 pour la table des error codes Supabase/PostgreSQL.
-
 ### Logging structuré avec préfixe module
 
 ```
@@ -97,20 +79,90 @@ type AsyncEvent =
 
 ## 3. Anti-Patterns Interdits
 
-| Interdit | Pourquoi | Alternative | detection_grep |
-|----------|----------|-------------|----------------|
-| `catch (e) {}` vide | Erreur silencieuse | Log + rethrow ou traitement | `catch` |
-| `catch (e) { return null }` | Masque l'erreur à l'appelant | Throw ou Result type | `return null` |
-| `console.log(error)` sans contexte | Non traçable en production | `[MODULE] message:` + error | `console.log` |
-| `const { data }` sans `error` | Échec silencieux (Supabase/API) | `const { data, error }` | `const { data }` |
-| Ignorer le champ erreur d'une réponse | Échec silencieux | `if (error) throw error` | — |
-| `await` dans `.map()` sans error handling | Erreur non catchée | `Promise.allSettled()` ou try/catch | `await` + `.map(` |
-| Catch qui log + rethrow sans transformation | Double logging | Log OU rethrow, pas les deux | — |
-| `if (error) throw error` en couche service | Message brut incompréhensible | Discrimination par error code | — |
+| Interdit | Pourquoi | Alternative |
+|----------|----------|-------------|
+| `catch (e) {}` vide | Erreur silencieuse | Log + rethrow ou traitement |
+| `catch (e) { return null }` | Masque l'erreur à l'appelant | Throw ou Result type |
+| `console.log(error)` sans contexte | Non traçable en production | `[MODULE] message:` + error |
+| Ignorer le champ erreur d'une réponse | Échec silencieux | `if (error) throw error` |
+| `await` dans `.map()` sans error handling | Erreur non catchée | `Promise.allSettled()` ou try/catch |
+| Catch qui log + rethrow sans transformation | Double logging | Log OU rethrow, pas les deux |
 
 ---
 
-## 4. Checklist Sécurité
+## 4. Systematic Debugging (4 phases)
+
+```
+Mode Debug activé → suivre les 4 phases séquentiellement.
+NE JAMAIS sauter une phase. NE JAMAIS deviner sans preuve.
+```
+
+### Phase 1 — Investigation (Root Cause)
+
+1. Lire le message d'erreur **complet** (pas de troncature)
+2. Reproduire le bug de manière fiable
+3. Vérifier les changements récents (`git diff`, `git log --oneline -10`)
+4. Rassembler les preuves : logs, stack traces, état de la DB
+5. Tracer le flux de données du point d'entrée au point de crash
+
+### Phase 2 — Analyse de patterns
+
+1. Trouver un exemple **fonctionnel** du même pattern dans le codebase
+2. Comparer les différences entre le cas fonctionnel et le cas cassé
+3. Identifier les variables qui changent entre les deux cas
+4. Vérifier si le bug est une régression (quand ça marchait encore ?)
+
+### Phase 3 — Hypothèse et test
+
+1. Formuler une hypothèse unique et testable
+2. Concevoir un test qui **prouve ou infirme** l'hypothèse
+3. Exécuter le test — une seule variable à la fois
+4. Si infirmée → retour Phase 1 avec les nouvelles données
+5. Si confirmée → Phase 4
+
+### Phase 4 — Implémentation du fix
+
+1. Implémenter le correctif minimal
+2. Vérifier que le bug est résolu (reproduction → OK)
+3. Vérifier qu'aucune régression n'est introduite (tests existants)
+
+### Règle des 3 strikes
+
+```
+3 tentatives de fix échouées = STOP.
+Ne pas insister — remettre en question l'hypothèse ou l'architecture.
+```
+
+| Strike | Action |
+|--------|--------|
+| 1er fix échoué | Normal — retour Phase 3, nouvelle hypothèse |
+| 2ème fix échoué | Retour Phase 1 — rassembler plus de preuves |
+| 3ème fix échoué | **Escalade** — le problème est probablement architectural. Présenter les 3 tentatives à l'utilisateur avec les résultats. Proposer une approche différente. |
+
+### Scope Freeze (anti-rabbit-holing)
+
+```
+En mode Debug, le scope est GELÉ.
+On corrige le bug identifié. On ne corrige RIEN d'autre.
+```
+
+- **Interdit** pendant le debug : refactorer, "améliorer" du code adjacent, corriger d'autres bugs découverts en chemin
+- **Obligatoire** : noter les problèmes découverts dans un commentaire `// TODO:` ou les signaler à l'utilisateur APRÈS le fix
+- Si le debug révèle un problème plus large → terminer le fix actuel d'abord, puis signaler
+
+### Anti-patterns Debug
+
+| Interdit | Pourquoi | Alternative |
+|----------|----------|-------------|
+| Deviner sans reproduire | Fix aléatoire | Reproduire d'abord |
+| Changer plusieurs choses à la fois | Impossible d'isoler la cause | Une variable à la fois |
+| Ignorer les logs/stack traces | L'info est déjà là | Lire tout, tracer le flux |
+| Refactorer pendant le debug | Mélange les responsabilités | Fix d'abord, refactor après |
+| Supprimer du code "pour voir" | Dangereux + non scientifique | Commenter temporairement si nécessaire |
+
+---
+
+## 5. Checklist Sécurité
 
 - [ ] Aucun secret/token dans les messages d'erreur
 - [ ] Les erreurs exposées à l'utilisateur ne révèlent pas la structure interne
@@ -119,7 +171,7 @@ type AsyncEvent =
 
 ---
 
-## 5. Portes d'Acceptation
+## 6. Portes d'Acceptation
 
 | Critère | Seuil | Vérification |
 |---------|-------|--------------|
@@ -131,9 +183,8 @@ type AsyncEvent =
 ### Checklist pré-commit
 
 - [ ] `silent-failure-hunter` exécuté, aucune severity HIGH ou CRITICAL
-- [ ] Tous les retours d'API ont leur erreur vérifiée (`const { data, error }`)
+- [ ] Tous les retours d'API ont leur erreur vérifiée
 - [ ] Tous les `catch` ont du logging avec préfixe module
 - [ ] Zéro `catch` vide ou avec simple `console.log`
 - [ ] Les opérations multi-étapes ont un rollback pattern
 - [ ] Les mutations UI ont un état d'erreur visible
-- [ ] Les erreurs en couche service sont discriminées par code (pas de `throw error` brut face-utilisateur)

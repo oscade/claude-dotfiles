@@ -2,7 +2,7 @@
 
 > **Objectif** : Garantir la qualité du code via 6 agents de review parallèles
 > **Quand lire** : Avant tout commit, après toute feature/tâche complétée
-> **Résumé gates** : code-reviewer >= 90/100 | silent-failure-hunter 0 CRITICAL/HIGH | type-design >= 8/10 | perf-analyzer >= 85/100 | security-analyzer 0 CRITICAL/HIGH | pwa-readiness >= 8/10
+> **Résumé gates** : code-reviewer >= 95/100 | silent-failure-hunter 0 CRITICAL/HIGH | type-design >= 8/10 | perf-analyzer >= 93/100 | security-analyzer 0 CRITICAL/HIGH | pwa-readiness >= 8/10
 
 ---
 
@@ -56,7 +56,7 @@ Tous lancés en parallèle via sub-agents → résultats agrégés
 
 | Métrique | Score | Seuil | Bloquant |
 |----------|-------|-------|----------|
-| Score global qualité | /100 | >= 90 | OUI |
+| Score global qualité | /100 | >= 95 | OUI |
 | Maintenabilité | /10 | >= 8 | OUI |
 
 **Critères du score global** :
@@ -65,6 +65,8 @@ Tous lancés en parallèle via sub-agents → résultats agrégés
 - Pas de code dupliqué
 - Imports propres, pas de dead code
 - Commentaires pertinents sur le code complexe (ni trop, ni trop peu)
+- SQL safety : pas de concaténation, parameterized queries, pas de SELECT *
+- Distinction auto-fix vs ASK : les issues évidentes sont corrigées, les choix de design sont signalés à l'utilisateur pour décision
 
 **Critères maintenabilité /10** :
 - Lisibilité (noms expressifs, fonctions courtes, SRP)
@@ -106,7 +108,7 @@ Tous lancés en parallèle via sub-agents → résultats agrégés
 
 | Métrique | Score | Seuil | Bloquant |
 |----------|-------|-------|----------|
-| Performance globale | /100 | >= 85 | OUI |
+| Performance globale | /100 | >= 93 | OUI |
 | Sous-score Performance | /100 | >= 90 | OUI |
 | Sous-score Accessibilité | /100 | >= 85 | NON (warning) |
 | Sous-score SEO | /100 | >= 85 | NON (warning) |
@@ -146,6 +148,19 @@ Tous lancés en parallèle via sub-agents → résultats agrégés
 - A10 SSRF : pas de fetch avec URL user-controlled sans whitelist
 - HTTPS : toutes les pages servies en HTTPS
 - Service Worker scope : pas d'exposition de routes sensibles
+
+**Vérifie (STRIDE)** :
+- Spoofing : auth forte, tokens signés
+- Tampering : intégrité des données en transit/stockage
+- Repudiation : audit logs sur les actions critiques
+- Information Disclosure : least privilege, pas de fuite de données
+- DoS : rate limiting, pagination
+- Elevation of Privilege : RLS, RBAC, contrôle serveur
+
+**Vérifie (Supply Chain & LLM)** :
+- Secrets archaeology : aucun secret dans l'historique git
+- Dépendances : audit vulnérabilités, pas de packages abandonnés
+- LLM trust boundaries : inputs sanitizés, outputs validés, system prompt non exposé
 
 ### 4.6 pwa-readiness (conditionnel)
 
@@ -222,24 +237,85 @@ Rapport agrégé final :
 
 ---
 
-## 7. Portes d'Acceptation
+## 7. Verification Gate (OBLIGATOIRE)
+
+```
+NE JAMAIS déclarer une tâche terminée sans PREUVE FRAÎCHE.
+"C'est fait" sans vérification exécutée = mensonge.
+```
+
+### Protocole
+
+Avant de déclarer une tâche complète, exécuter systématiquement :
+
+1. **Identifier** la commande de vérification appropriée (test, build, lint, type-check)
+2. **Exécuter** la commande — pas de raccourci, pas de "ça devrait marcher"
+3. **Lire** la sortie complète — pas de troncature, pas de résumé optimiste
+4. **Vérifier** que le résultat confirme la complétion effective
+
+### Quand appliquer
+
+| Situation | Vérification requise |
+|-----------|---------------------|
+| Feature terminée | Tests passent + build OK |
+| Bug fix | Test de non-régression + reproduction confirmée résolue |
+| Refactoring | Tests existants passent + type-check OK |
+| Délégation à subagent | Vérifier les claims du subagent indépendamment |
+| Modification config | Valider que l'app démarre correctement |
+
+### Anti-patterns
+
+| Interdit | Alternative |
+|----------|-------------|
+| "J'ai vérifié mentalement" | Exécuter la commande réellement |
+| Résumer un output sans le lire | Lire chaque ligne de la sortie |
+| Faire confiance au subagent sans vérifier | Re-exécuter les vérifications soi-même |
+| Dire "les tests devraient passer" | Lancer les tests et montrer le résultat |
+
+---
+
+## 8. Anti-Sycophancy (Code Review)
+
+```
+JAMAIS d'accord performatif en code review.
+Vérifier techniquement AVANT d'accepter ou rejeter une suggestion.
+```
+
+### Règles
+
+- **Interdit** : "You're absolutely right!", "Great point!", "Excellent suggestion!"
+- **Obligatoire** : vérification technique avant d'implémenter une suggestion de review
+- **YAGNI check** : toute suggestion de feature "professionnelle" doit passer le test "est-ce que c'est demandé ?"
+- **Push back** : si une suggestion de review est incorrecte, la rejeter avec un raisonnement technique
+- Si une suggestion semble correcte mais non vérifiée → vérifier dans le code avant de l'accepter
+
+### Application
+
+- S'applique à l'IA quand elle reçoit du feedback ou des suggestions
+- S'applique aux rapports des agents de review entre eux
+- Un finding d'agent doit être vérifié factuellement avant d'être corrigé
+
+---
+
+## 9. Portes d'Acceptation
 
 ### Checklist pré-commit
 
-- [ ] `code-reviewer` : score >= 90/100, maintenabilité >= 8/10
+- [ ] `code-reviewer` : score >= 95/100, maintenabilité >= 8/10
 - [ ] `silent-failure-hunter` : 0 CRITICAL, 0 HIGH
 - [ ] `type-design-analyzer` : score >= 8/10 (si nouveaux types)
-- [ ] `perf-analyzer` : score >= 85/100, sous-score perf >= 90/100
+- [ ] `perf-analyzer` : score >= 93/100, sous-score perf >= 93/100
 - [ ] `security-analyzer` : 0 CRITICAL, 0 HIGH
 - [ ] `pwa-readiness` : score >= 8/10 (si projet PWA)
+- [ ] `verification-gate` : preuve d'exécution fraîche (tests, build, type-check)
 
 ```
 NE JAMAIS committer sans avoir exécuté au minimum code-reviewer.
-Un score < 90/100 sur code-reviewer est BLOQUANT.
-Un score < 85/100 sur perf-analyzer est BLOQUANT.
+Un score < 95/100 sur code-reviewer est BLOQUANT.
+Un score < 93/100 sur perf-analyzer est BLOQUANT.
 Toute issue CRITICAL ou HIGH sur silent-failure-hunter ou security-analyzer est BLOQUANTE.
 ```
 
 ---
 
-*Dernière mise à jour: Mars 2026*
+*Dernière mise à jour: Avril 2026*
