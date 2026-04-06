@@ -106,17 +106,46 @@ L'utilisateur peut rejeter, imposer, arrêter toute ligne d'analyse. Réponse : 
 ### Ship Flow (pipeline de livraison)
 
 ```
-1. Vérifier la branche  → git status, diff avec base branch
-2. Tests                → run test suite complète (unit + E2E)
+REGLE ABSOLUE — NON NEGOCIABLE :
+Le Ship Flow est SEQUENTIEL et BLOQUANT.
+AUCUNE étape ne peut être sautée, réordonnée ou reportée.
+L'implémentation de code N'EST PAS la fin du travail — c'est l'étape 1 sur 8.
+Coder sans passer les gates = code non livrable = travail incomplet.
+```
+
+```
+1. Implementation       → coder le changement demandé
+2. Build + type-check   → tsc -b && vite build (zéro erreur)
 3. Browser check        → DOM smoke test + screenshot si UI (→ browser-verification.md)
-4. Review gate          → lancer les 6 agents de review
+4. Review gate          → lancer les 6 agents de review EN PARALLÈLE
+   └─ Corriger les issues bloquantes → re-check si nécessaire
+   └─ Créer le marqueur .review-gate-passed UNIQUEMENT si tous les seuils sont atteints
 5. Commit               → message conventionnel, atomique
 6. Push                 → vers la branche feature (jamais main directement)
 7. PR                   → créer via gh pr create, résumé structuré
 8. Post-PR              → signaler si CI/CD disponible
 ```
 
-Chaque étape est bloquante. Ne pas avancer si l'étape précédente échoue.
+**Règles d'exécution strictes :**
+
+- Chaque étape est **bloquante**. Ne pas avancer si l'étape précédente échoue.
+- **INTERDIT** de proposer un commit ou un push sans avoir exécuté les étapes 2-3-4 dans l'ordre.
+- **INTERDIT** de regrouper plusieurs features puis de lancer les gates une seule fois à la fin. Chaque feature/fix passe son propre cycle.
+- **INTERDIT** de considérer le travail "terminé" après l'implémentation. Terminé = pushé après toutes les gates.
+- Si l'utilisateur demande de "faire 5 fixes", le Ship Flow s'applique à l'ensemble AVANT commit, pas après.
+- Le hook `pre-commit-review-gate.sh` est un filet de sécurité, pas le mécanisme principal. L'IA doit lancer les gates **de sa propre initiative**, pas attendre que le hook bloque.
+
+**Séquence type après implémentation :**
+```
+"Implémentation terminée. Je lance le build + type-check."
+→ OK
+"Je lance le browser check sur les pages impactées."
+→ OK
+"Je lance les 6 agents de review en parallèle."
+→ Résultats → corrections si nécessaire → re-review
+→ Tous les seuils atteints → marqueur créé
+"Prêt pour le commit."
+```
 
 ---
 
